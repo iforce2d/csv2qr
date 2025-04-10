@@ -20,7 +20,7 @@
 #include <ZXing/Version.h>
 
 #define STB_IMAGE_WRITE_IMPLEMENTATION
-#include <stb_image_write.h>
+#include <stb_image_write.h>  // on Ubuntu, try: #include <stb/stb_image_write.h>
 
 using namespace ZXing;
 using namespace std;

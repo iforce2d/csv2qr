@@ -20,9 +20,22 @@ For example (quote delimited CSV is not supported):
 
 <img src="https://www.iforce2d.net/tmp/qr.png" width="640" height="360">
 
+
+
 ### Setup
 
 Building this code requires libpng, libz, libharu and ZXing libraries. Should be easy to compile on Linux and Mac, no idea about Windows. The libpng and libz can likely be found in standard packages, for the others, build steps for Fedora and Ubuntu are shown below. For MacOS, you'll probably need to change `/usr` prefixes to `/usr/local`, and limit concurrent compilations explicitly, eg. make -j4.
+
+    (Fedora)
+    sudo dnf install zlib-devel libpng-devel stb_image_write-devel 
+
+    (Ubuntu)
+    sudo apt install libz-dev libpng-dev libstb-dev
+    
+    (MacOS)
+    # equivalent packages as above can be obtained from brew, not sure the names sorry! For the stb one, try this:
+    git clone https://github.com/nothings/stb.git
+    sudo cp stb/stb_image_write.h /usr/local/include/
 
     git clone https://github.com/zxing-cpp/zxing-cpp.git --recursive --single-branch --depth 1
     cd zxing-cpp
@@ -43,6 +56,8 @@ Building this code requires libpng, libz, libharu and ZXing libraries. Should be
     cd ../..
 
 ### Building
+
+(On Ubuntu, probably need to change `#include <stb_image_write.h>` to `#include <stb/stb_image_write.h>`)
 
     make
     ./csv2qr
