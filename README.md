@@ -67,24 +67,46 @@ Building this code requires libpng, libz, libharu and ZXing libraries. Should be
     Usage: ./csv2qr -i infile.csv -o outfile.pdf [options]
     
       Options:
-         -v                Print verbose output
-         -q size           QR code size (default = 24)
-         -f name           Font name (default = Helvetica)
-         -s size           Font size (default = 9)
-         -r distance       Separation between rows (default = 10)
-         -c distance       Separation between columns (default = 100)
-         -t distance       Separation between QR and text (default = 5)
-         -m distance       Page margin (default = 20)
-         -n count          Repetitions (default = 1)
+        -v                Print verbose output
+        -s size           QR code size (default = 24)
+        -q format         Columns for QR code value (default = '0')
+        -1 format         Columns for comment 1 (default = '1')
+        -2 format         Columns for comment 2 (default = '2')
+        -d char           Single-character delimiter between columns (default = none)
+        -f name           Font name (default = Helvetica)
+        -h size           Font size (default = 9)
+        -r distance       Separation between rows (default = 10)
+        -c distance       Separation between columns (default = 100)
+        -t distance       Separation between QR and text (default = 5)
+        -m distance       Page margin (default = 20)
+        -n count          Repetitions (default = 1)
     
-      Note that all numeric options are integers.
-      Input file must be plain ASCII, not utf-8 !
+     Note that all numeric options are integers.
+     Input file must be plain ASCII, not utf-8 !
+     An empty line in the CSV file will be considered end of input.
 
-Repetitions means that the same list will simply be repeated `count` times. With my printer, I found that small QR codes sometimes failed to be detected because every few centimeters the pixels at the bottom edge seemed to be stretched like this: 
+     A column format is a sequence of integers from 0-9 denoting which columns 
+     to concatenate into the final value. For example the format '034' would
+     form a value by concatenating columns 0, 3 and 4 (positions are zero indexed).
+     To insert a delimiter between the concatenations, use the -d option.
+
+#### Column selection
+
+By default the first column in the CSV file will be used as the value of the QR code, and the second and third columns will be the comment texts. 
+You can select other columns, and concatenations of multiple columns, using the `-q`, `-1`, `-2` options, which each take a list of zero-indexed column numbers. 
+For example, to use the fourth column in the CSV as the QR code value, you would use `-q 4`.
+
+To use multiple columns in one value, you can just list all those columns in the parameter. For example, to concatenate the 6th and 9th columns of the CSV as the first comment text, separated by a slash, you would use `-1 58 -d /`
+
+#### Repetitions
+
+Repetitions means that each code will simply be repeated `count` times. With my printer, I found that small QR codes sometimes failed to be detected because every few centimeters the pixels at the bottom edge seemed to be stretched like this: 
 
 <img src="https://www.iforce2d.net/tmp/qr2.png">
 
 I think this might be because the printer roller is not perfectly round...? One solution is to cut the paper very carefully to trim off the excess at the edge, but that's quite fiddly. I figure if I just print a whole extra bunch of the same codes, somewhere there will be one that's ok.
+
+
 
 <br>
 <br>
