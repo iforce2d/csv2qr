@@ -69,6 +69,15 @@ vector< vector<string> > readCSVFile(string filename) {
         vector<string> row = getNextLineAndSplitIntoTokens(instream);
         if ( row.empty() )
             break;
+        bool isEmpty = true;
+        for ( int i = 0; i < (int)row.size(); i++ ) {
+            if ( ! row[i].empty() ) {
+                isEmpty = false;
+                break;
+            }
+        }
+        if ( isEmpty )
+            break;
         allRows.push_back( row );
     }
 
@@ -99,15 +108,22 @@ int textsep = 5;
 int margin = 20;
 int fontSize = 9;
 int reps = 1;
+char qrContentColumns[32] = "0";
+char commentRow1Columns[32] = "1";
+char commentRow2Columns[32] = "2";
 
 void usage(char* progName)
 {
     cout << "\nUsage: " << progName << " -i infile.csv -o outfile.pdf [options]" << endl << endl <<
         "  Options:" << endl <<
         "     -v                Print verbose output" << endl <<
-        "     -q size           QR code size (default = " << dim << ")" << endl <<
+        "     -s size           QR code size (default = " << dim << ")" << endl <<
+        "     -q format         Columns for QR code value (default = '0')" << endl <<
+        "     -1 format         Columns for comment 1 (default = '1')" << endl <<
+        "     -2 format         Columns for comment 2 (default = '2')" << endl <<
+        "     -d char           Single-character delimiter between columns (default = none)" << endl <<
         "     -f name           Font name (default = " << fontName << ")" << endl <<
-        "     -s size           Font size (default = " << fontSize << ")" <<  endl <<
+        "     -h size           Font size (default = " << fontSize << ")" <<  endl <<
         "     -r distance       Separation between rows (default = " << rowsep << ")" <<  endl <<
         "     -c distance       Separation between columns (default = " << colsep << ")" <<  endl <<
         "     -t distance       Separation between QR and text (default = " << textsep << ")" <<  endl <<
@@ -116,6 +132,12 @@ void usage(char* progName)
         endl <<
         "  Note that all numeric options are integers." << endl <<
         "  Input file must be plain ASCII, not utf-8 !" << endl <<
+        "  An empty line in the CSV file will be considered end of input." << endl <<
+        endl <<
+        "  A column format is a sequence of integers from 0-9 denoting which columns " << endl <<
+        "  to concatenate into the final value. For example the format '034' would" << endl <<
+        "  form a value by concatenating columns 0, 3 and 4 (positions are zero indexed)." << endl <<
+        "  To insert a delimiter between the concatenations, use the -d option." << endl <<
         endl <<
         "  Valid font names:" << endl;
     int i = 0;
@@ -124,6 +146,28 @@ void usage(char* progName)
         i++;
     }
     cout << endl;
+}
+
+string makeContentString(vector<string> &cols, char* format, char delimiter) {
+    int i = 0;
+    char c = 0;
+    while ( (c = format[i++]) ) {
+        int colnum = c - '0';
+        if ( colnum >= (int)cols.size() ) {
+            return "invalid";
+        }
+    }
+    i = 0;
+    string s = "";
+    while ( (c = format[i++]) ) {
+        int colnum = c - '0';
+        if ( delimiter ) {
+            if ( i > 1 )
+                s += delimiter;
+        }
+        s += cols[colnum];
+    }
+    return s;
 }
 
 int main (int argc, char **argv)
@@ -136,8 +180,13 @@ int main (int argc, char **argv)
         return -1;
     }
 
+    char delimiter = 0; // none
+    sprintf(qrContentColumns, "0");
+    sprintf(commentRow1Columns, "1");
+    sprintf(commentRow2Columns, "2");
+
     int c = -1;
-    while ((c = getopt(argc, argv, "i:o:vf:r:c:s:t:m:n:q:")) != -1) {
+    while ((c = getopt(argc, argv, "i:o:vf:h:r:c:s:t:m:n:q:1:2:d:")) != -1) {
         switch (c) {
         case 'v':
             verbose = true;
@@ -148,13 +197,13 @@ int main (int argc, char **argv)
         case 'o':
             outfile = optarg;
             break;
-        case 'q':
+        case 's':
             dim = atoi(optarg);
             break;
         case 'f':
             fontName = optarg;
             break;
-        case 's':
+        case 'h':
             fontSize = atoi(optarg);
             break;
         case 'r':
@@ -171,6 +220,18 @@ int main (int argc, char **argv)
             break;
         case 'n':
             reps = atoi(optarg);
+            break;
+        case 'q':
+            sprintf(qrContentColumns, optarg);
+            break;
+        case '1':
+            sprintf(commentRow1Columns, optarg);
+            break;
+        case '2':
+            sprintf(commentRow2Columns, optarg);
+            break;
+        case 'd':
+            delimiter = optarg[0];
             break;
         }
     }
@@ -195,6 +256,10 @@ int main (int argc, char **argv)
         printf("  Text separation: %d\n", textsep);
         printf("  Page margin: %d\n", margin);
         printf("  Repetitions: %d\n", reps);
+        printf("  QR content columns: %s\n", qrContentColumns);
+        printf("  Comment row 1 columns: %s\n", commentRow1Columns);
+        printf("  Comment row 2 columns: %s\n", commentRow2Columns);
+        printf("  Column delimiter: %c\n", delimiter);
     }
 
     if ( infile == 0 || outfile == 0 ) {
@@ -254,62 +319,66 @@ int main (int argc, char **argv)
     int x = margin;
     int y = HPDF_Page_GetHeight(page) - dim - margin;
 
-    for (int rep = 0; rep < reps; rep++)
-
     for (int i = 0; i < (int)rows.size(); i++) {
 
         vector<string> cols = rows[i];
 
-        if ( y - dim < 0 ) {
-            y = HPDF_Page_GetHeight(page) - dim - margin;
-            x += colsep;
-            if ( x > HPDF_Page_GetWidth(page) - margin ) {                
-                if ( verbose )
-                    printf("Page break at %d\n", i);
-                page = HPDF_AddPage (pdf);
-                HPDF_Page_SetFontAndSize (page, font, fontSize);
-                x = margin;
-                y = HPDF_Page_GetHeight(page) - dim - margin;
-            }
-        }
-
-        string code =     cols.size() > 0 ? cols[0] : "invalid";
-        string comment1 = cols.size() > 1 ? cols[1] : "invalid";
-        string comment2 = cols.size() > 2 ? cols[2] : "invalid";
+        string code     = makeContentString(cols, qrContentColumns, delimiter);
+        string comment1 = makeContentString(cols, commentRow1Columns, delimiter);
+        string comment2 = makeContentString(cols, commentRow2Columns, delimiter);
 
         if ( code == "" ) {
             printf("Ignoring empty cell in row %d !\n", i+1);
             continue;
         }
 
-        try {
+        if ( verbose ) {
+            printf("Adding QRcode: x=%d, y=%d, content='%s', comment1='%s', comment2='%s'\n", x, y, code.c_str(), comment1.c_str(), comment2.c_str());
+        }
 
-            auto writer = MultiFormatWriter(BarcodeFormat::QRCode).setMargin(0);
+        for (int rep = 0; rep < reps; rep++) {
+            try {
 
-            writer.setEncoding(CharacterSet::UTF8);
-            BitMatrix matrix = writer.encode(code.c_str(), 256, 256);
-            auto bitmap = ToMatrix<uint8_t>(matrix);
+                auto writer = MultiFormatWriter(BarcodeFormat::QRCode).setMargin(0);
 
-            int len = 0;
-            unsigned char *png = stbi_write_png_to_mem(bitmap.data(), 256, 256, 256, 1, &len);
+                writer.setEncoding(CharacterSet::UTF8);
+                BitMatrix matrix = writer.encode(code.c_str(), 256, 256);
+                auto bitmap = ToMatrix<uint8_t>(matrix);
 
-            HPDF_Image image = HPDF_LoadPngImageFromMem(pdf, png, len);
+                int len = 0;
+                unsigned char *png = stbi_write_png_to_mem(bitmap.data(), 256, 256, 256, 1, &len);
 
-            HPDF_Page_DrawImage (page, image, x, y, dim, dim);
+                HPDF_Image image = HPDF_LoadPngImageFromMem(pdf, png, len);
 
-            HPDF_Page_BeginText (page);
-            HPDF_Page_SetTextLeading (page, 0);
-            HPDF_Page_MoveTextPos (page, x+dim+textsep, y + dim / 2 + fontSize * 0.15 );
-            HPDF_Page_ShowTextNextLine (page, comment1.c_str());
-            HPDF_Page_SetTextLeading (page, fontSize);
-            HPDF_Page_ShowTextNextLine (page, comment2.c_str());
-            HPDF_Page_EndText (page);
+                HPDF_Page_DrawImage (page, image, x, y, dim, dim);
 
-            y -= dim + rowsep;
+                HPDF_Page_BeginText (page);
+                HPDF_Page_SetTextLeading (page, 0);
+                HPDF_Page_MoveTextPos (page, x+dim+textsep, y + dim / 2 + fontSize * 0.15 );
+                HPDF_Page_ShowTextNextLine (page, comment1.c_str());
+                HPDF_Page_SetTextLeading (page, fontSize);
+                HPDF_Page_ShowTextNextLine (page, comment2.c_str());
+                HPDF_Page_EndText (page);
 
-        } catch (const exception& e) {
-            cerr << e.what() << endl;
-            return -1;
+                y -= dim + rowsep;
+
+                if ( y - dim < 0 ) {
+                    y = HPDF_Page_GetHeight(page) - dim - margin;
+                    x += colsep;
+                    if ( x > HPDF_Page_GetWidth(page) - margin ) {
+                        if ( verbose )
+                            printf("Page break at %d\n", i);
+                        page = HPDF_AddPage (pdf);
+                        HPDF_Page_SetFontAndSize (page, font, fontSize);
+                        x = margin;
+                        y = HPDF_Page_GetHeight(page) - dim - margin;
+                    }
+                }
+
+            } catch (const exception& e) {
+                cerr << e.what() << endl;
+                return -1;
+            }
         }
     }
 
