@@ -222,13 +222,13 @@ int main (int argc, char **argv)
             reps = atoi(optarg);
             break;
         case 'q':
-            sprintf(qrContentColumns, optarg);
+            sprintf(qrContentColumns, "%s", optarg);
             break;
         case '1':
-            sprintf(commentRow1Columns, optarg);
+            sprintf(commentRow1Columns, "%s", optarg);
             break;
         case '2':
-            sprintf(commentRow2Columns, optarg);
+            sprintf(commentRow2Columns, "%s", optarg);
             break;
         case 'd':
             delimiter = optarg[0];
