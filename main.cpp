@@ -111,16 +111,18 @@ int reps = 1;
 char qrContentColumns[32] = "0";
 char commentRow1Columns[32] = "1";
 char commentRow2Columns[32] = "2";
+string symbolStyle = "qr";
 
 void usage(char* progName)
 {
     cout << "\nUsage: " << progName << " -i infile.csv -o outfile.pdf [options]" << endl << endl <<
         "  Options:" << endl <<
         "     -v                Print verbose output" << endl <<
+        "     -x style          Symbol style, either 'qr' (QR code) or 'dm' (DataMatrix) (default = " << symbolStyle << ")" << endl <<
         "     -s size           QR code size (default = " << dim << ")" << endl <<
-        "     -q format         Columns for QR code value (default = '0')" << endl <<
-        "     -1 format         Columns for comment 1 (default = '1')" << endl <<
-        "     -2 format         Columns for comment 2 (default = '2')" << endl <<
+        "     -q columns        Column format for QR code value (default = '0')" << endl <<
+        "     -1 columns        Column format for comment 1 (default = '1')" << endl <<
+        "     -2 columns        Column format for comment 2 (default = '2')" << endl <<
         "     -d char           Single-character delimiter between columns (default = none)" << endl <<
         "     -f name           Font name (default = " << fontName << ")" << endl <<
         "     -h size           Font size (default = " << fontSize << ")" <<  endl <<
@@ -186,10 +188,14 @@ int main (int argc, char **argv)
     sprintf(commentRow2Columns, "2");
 
     int c = -1;
-    while ((c = getopt(argc, argv, "i:o:vf:h:r:c:s:t:m:n:q:1:2:d:")) != -1) {
+    while ((c = getopt(argc, argv, "i:o:vf:h:r:c:s:t:m:n:q:1:2:d:x:")) != -1) {
         switch (c) {
         case 'v':
             verbose = true;
+            break;
+        case 'x':
+            if ( string(optarg) == "dm" )
+                symbolStyle = "dm";
             break;
         case 'i':
             infile = optarg;
@@ -248,6 +254,7 @@ int main (int argc, char **argv)
         printf("Showing verbose output\n");
         printf("  Input file: '%s'\n", infile);
         printf("  Output file: '%s'\n", outfile);
+        printf("  Symbol style: %s\n", symbolStyle.c_str());
         printf("  QR code size: %d\n", dim);
         printf("  Font name: '%s'\n", fontName);
         printf("  Font size: %d\n", fontSize);
@@ -339,7 +346,9 @@ int main (int argc, char **argv)
         for (int rep = 0; rep < reps; rep++) {
             try {
 
-                auto writer = MultiFormatWriter(BarcodeFormat::QRCode).setMargin(0);
+                BarcodeFormat bcfmt = symbolStyle == "dm" ? BarcodeFormat::DataMatrix : BarcodeFormat::QRCode;
+
+                auto writer = MultiFormatWriter( bcfmt ).setMargin(0);
 
                 writer.setEncoding(CharacterSet::UTF8);
                 BitMatrix matrix = writer.encode(code.c_str(), 256, 256);

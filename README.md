@@ -68,10 +68,11 @@ Building this code requires libpng, libz, libharu and ZXing libraries. Should be
     
       Options:
         -v                Print verbose output
+        -x style          Symbol style, either 'qr' (QR code) or 'dm' (DataMatrix) (default = qr)
         -s size           QR code size (default = 24)
-        -q format         Columns for QR code value (default = '0')
-        -1 format         Columns for comment 1 (default = '1')
-        -2 format         Columns for comment 2 (default = '2')
+        -q columns        Column format for QR code value (default = '0')
+        -1 columns        Column format for comment 1 (default = '1')
+        -2 columns        Column format for comment 2 (default = '2')
         -d char           Single-character delimiter between columns (default = none)
         -f name           Font name (default = Helvetica)
         -h size           Font size (default = 9)
@@ -94,7 +95,7 @@ Building this code requires libpng, libz, libharu and ZXing libraries. Should be
 
 By default the first column in the CSV file will be used as the value of the QR code, and the second and third columns will be the comment texts. 
 You can select other columns, and concatenations of multiple columns, using the `-q`, `-1`, `-2` options, which each take a list of zero-indexed column numbers. 
-For example, to use the fourth column in the CSV as the QR code value, you would use `-q 4`.
+For example, to use the fourth column in the CSV as the QR code value, you would use `-q 3`.
 
 To use multiple columns in one value, you can just list all those columns in the parameter. For example, to concatenate the 6th and 9th columns of the CSV as the first comment text, separated by a slash, you would use `-1 58 -d /`
 
